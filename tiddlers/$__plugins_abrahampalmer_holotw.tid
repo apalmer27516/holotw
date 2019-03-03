@@ -1,0 +1,22 @@
+created: 20190221024414440
+dependents: 
+description: TiddlyWiki on Holochain - a secure, distributed, peer-to-peer system
+modified: 20190221041331458
+plugin-type: plugin
+title: $:/plugins/abrahampalmer/holotw
+type: application/json
+version: 0.0.2
+
+{
+    "tiddlers": {
+        "$:/plugins/abrahampalmer/holotw/main.js": {
+            "text": "/*\\\ntitle: $:/plugins/abrahampalmer/holotw/main.js\ntype: application/javascript\nmodule-type: syncadaptor\nWorking version to save to Holochain - will just hardcode and simplify things for starters\n\\*/\n\n/* global $tw, fetch */\nclass HoloTW {\n    constructor (options) {\n      this.wiki = options.wiki\n\n      console.log('In HoloTW Constructor')\n    }\n\n    /*Gets the supplemental information that the adaptor needs to keep track of for a particular tiddler.*/\n    getTiddlerInfo (tiddler) {\n      return {address: \"HoloTW_Address\"}\n    }\n  \n    getStatus (callback) {\n        console.log('In HoloTW getStatus')\n      callback(null, True, \"Get agent name\")\n    }\n  \n    getSkinnyTiddlers (callback) {\n        console.log('In HoloTW getSkinnyTiddlers')\n        \n        callback(null)\n    }\n  \n    loadTiddler (title, callback) {\n        console.log('In HoloTW loadTiddler')\n        callback(null)\n        return\n    }\n  \n    saveTiddler (tiddler, callback, tiddlerInfo) {\n        console.log('In HoloTW saveTiddler')\n        callback(null)\n        return true\n    }\n  \n    deleteTiddler (title, callback, tiddlerInfo) {\n        console.log('In HoloTW deleteTiddler')\n      return true\n    }\n}\n  \n  if ($tw.browser) {\n    exports.adaptorClass = HoloTW\n  }",
+            "bag": "default",
+            "revision": "1",
+            "type": "application/javascript",
+            "title": "$:/plugins/abrahampalmer/holotw/main.js",
+            "modified": "20190221034924668",
+            "created": "20190221025453709"
+        }
+    }
+}

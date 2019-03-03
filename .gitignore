@@ -1,0 +1,7 @@
+dist/
+node_modules/
+target/
+.hc
+holochain-ubuntu
+test/node_modules
+zomes/holotw/code/target

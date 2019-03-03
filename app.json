@@ -1,0 +1,14 @@
+{
+  "name": "HoloTW",
+  "description": "A TiddlyWiki single-page-app implementation of a Wiki with a Holochain backend for saving data.",
+  "authors": [
+    {
+      "identifier": "Abraham Palmer <abraham@boxturtlebakery.com>",
+      "public_key_source": "",
+      "signature": ""
+    }
+  ],
+  "version": "0.1.0",
+  "dht": {},
+  "properties": null
+}
