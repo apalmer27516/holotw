@@ -1,2 +1,3 @@
 #!/bin/bash
-hc run --port 3400 --interface websocket --package
+#Setup to persist to the .hc folder for initial testing
+hc run --port 3400 --interface websocket --package --persist

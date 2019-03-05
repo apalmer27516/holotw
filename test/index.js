@@ -7,12 +7,12 @@ const dnaPath = "./dist/bundle.json"
 const agentAlice = Config.agent("alice")
 const dna = Config.dna(dnaPath)
 const instanceAlice = Config.instance(agentAlice, dna)
-const scenario = new Scenario([instanceAlice], { debugLog: false })
+const scenario = new Scenario([instanceAlice], { debugLog: true })
 
 const address_a = "QmdTMLkxJPe7CTrVnixBMfX196h8zGWFgReWvkb7smTCup"
 const address_b = "QmbckNj1tikTqzP7zyLMavaYJQxgeLPrds33Jser9CrB95"
 
-/* scenario.runTape("Try to create an entry", (t, { alice }) => {
+scenario.runTape("Try to create an entry", (t, { alice }) => {
   // Make a call to a Zome function
   // indicating the function, and passing it an input
   const addr = alice.call("holotw", "create_tiddler", {"title":"Tiddler Title A",
@@ -59,7 +59,7 @@ scenario.runTape("use the remove_entry function to mark an existing tiddler entr
   } catch (e) {}
   t.deepEqual(result, { Ok: null })
 })
- */
+
 scenario.runTape("use the query_results function to get a list of all the tiddlers in the dht", (t, { alice }) => {
   let result
   try {

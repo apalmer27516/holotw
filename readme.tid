@@ -1,0 +1,5 @@
+title: $:/plugins/abrahampalmer/holotw/readme
+
+This plugin provides a ''syncadaptor'' module for connecting TiddlyWiki to a Holochain backend.
+
+[[Source code|https://github.com/apalmer27516/holotw]]

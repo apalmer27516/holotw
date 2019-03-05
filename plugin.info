@@ -1,0 +1,10 @@
+{
+	"title": "$:/plugins/abrahampalmer/holotw",
+	"description": "TiddlyWiki on Holochain - a secure, distributed, peer-to-peer system",
+	"author": "AbrahamPalmer",
+	"core-version": ">=5.0.0",
+	"list": "readme",
+	"version": "0.0.1",
+	"source": "https://github.com/apalmer27516/holotw",
+  	"plugin-type": "plugin"
+}

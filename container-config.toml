@@ -9,26 +9,14 @@ name = "HoloTester1"
 public_address = "sandwich--------------------------------------------------------------------------AAAEqzh28L"
 key_file = "holo_tester.key"
 
-[[agents]]
-id = "test_agent2"
-name = "HoloTester2"
-public_address = "bagel-----------------------------------------------------------------------------AAADAq0mCu"
-key_file = "holo_tester.key"
-
-[[agents]]
-id = "test_agent3"
-name = "HoloTester3"
-public_address = "croissant-------------------------------------------------------------------------AAAEuHzxV4"
-key_file = "holo_tester.key"
-
 [[dnas]]
-id = "simple_app_dna"
+id = "holotw_app_dna"
 file = "bundle.json"
-hash = "Qm328wyq38924y"
+hash = "QmWoL2nMQnmihKp4uBgFpgdJCe9PYN3jYg5i3SJYLvjnsn"
 
 [[instances]]
 id = "test-instance"
-dna = "simple_app_dna"
+dna = "holotw_app_dna"
 agent = "test_agent1"
 [instances.storage]
 #type = "file"
@@ -39,7 +27,7 @@ type = "memory"
 id = "websocket_interface"
 [interfaces.driver]
 type = "websocket"
-port = 8888
+port = 3400
 [[interfaces.instances]]
 id = "test-instance"
 

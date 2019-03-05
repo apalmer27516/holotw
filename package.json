@@ -2,5 +2,11 @@
   "dependencies": {
     "@holochain/hc-web-client": "0.1.0",
     "tap-spec": "^5.0.0"
+  },
+  "devDependencies": {
+    "browserify": "^16.1.0"
+  },
+  "scripts": {
+    "build": "browserify --standalone _ main.js > /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/main.js && cp readme.tid plugin.info /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/ && cd /home/abraham/coding/holo-apps/TW5 && node ./tiddlywiki.js editions/tw5.com --build index"
   }
 }
