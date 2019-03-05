@@ -1,1 +1,12 @@
 # holotw
+
+This project is an attempt to take an existing TiddlyWiki front-end (a single-page web-app that is a Wiki) and change-out the back-end to [Holochain](https://github.com/holochain). I'm still working on this, but had enough things strung together that I wanted to go ahead and publish it. This is still a great project to actually bring to completion because: a) I use this tool as my own personal organizer and it would be great to have something I could use to share data securely with my family and myself on multiple devices b) TiddlyWiki has more than a decade old large, rabid, and global fan-base and extending that tool in a useful way could potentially introduce a lot of people to Holochain. It has a very configurable/hackable type of approach that is a little like Holochain.
+
+Changes will be pushed to this Github repository: https://github.com/apalmer27516/holotw.git
+
+Success so far (hopefully I'll have an improved version committed by the end of this week):
+
+* I had never created a plugin in TiddlyWiki so figured that out and how to get the end-to-end development environment all automated to produce a single compiled "index.html" file (Not currently included in the Github, but I will add that and simplify the rest of the test setup - but basically boot up a holochain conductor with the *.toml in the github to test it out)
+* I built my new "holotw" zome and created basic tests for all the functions which run successfully. (1 interesting to-do will be to create a series of higher order tests which use a mix of different agents and a series of adds/edits/deletes to generate and deal with a bunch of collision scenarios. TiddlyWiki is a single-user tool so usecases where someone sharing your chain modifies or deletes your records need to be properly handled. The Zome implementation will probably need to be extended)
+* I've been running with the dev and production conductor using the hc-web-client to wrap the web-socket calls. Node/npm are used just to handle the compile, build, and testing - not for running a web server since it is just a single file application . I like the production instance because I can turn on all the detailed debug output. (I still need to get all the async callback hell sorted out to get everything to work with dynamic discovery of the Holochain instance)
+* UI is functional enough that I can see things getting invoked and executing my code (Lots of defects to fix and more code to write to make it complete).
