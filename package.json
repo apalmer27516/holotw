@@ -7,6 +7,7 @@
     "browserify": "^16.1.0"
   },
   "scripts": {
-    "build": "browserify --standalone _ main.js > /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/main.js && cp readme.tid plugin.info /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/ && cd /home/abraham/coding/holo-apps/TW5 && node ./tiddlywiki.js editions/tw5.com --build index"
+    "build": "browserify --standalone _ main.js > /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/main.js && cp readme.tid plugin.info /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/ && cd /home/abraham/coding/holo-apps/TW5 && node ./tiddlywiki.js editions/tw5.com --build index",
+    "builddist": "browserify --standalone _ main.js > /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/main.js && cp readme.tid plugin.info /home/abraham/coding/holo-apps/TW5/plugins/abrahampalmer/holotw/ && cd /home/abraham/coding/holo-apps/TW5 && node ./tiddlywiki.js editions/empty --build index && cp /home/abraham/coding/holo-apps/TW5/editions/empty/output/index.html /home/abraham/coding/holo-apps/holotw/dist"
   }
 }

@@ -22,6 +22,10 @@ class HoloTW {
         //I think just use this special browser localStorage for just the Storylist, but not really sure.
         this.ls = localStorage;
 
+        // Maintain a couple of local indexes to the DHT
+        this.skinnyTiddlers = new Map();
+        this.tiddlerAddresses = new Map();
+
 /*         this.makeHolochainCall('info/instances', { }, result => {
           console.log('Instances', result);
           result.forEach (function (instance) {
@@ -36,10 +40,17 @@ class HoloTW {
 //      }
     }
 
+    //Checked by syncadaptor, but not defined by the interface - force to true to see what happens
+    isReady () {
+      return true;
+    }
+
     /*Gets the supplemental information that the adaptor needs to keep track of for 
-    a particular tiddler.*/
+    a particular tiddler. Just looking up in save tiddler for now since not sure how
+    the timing works on invoking this.*/
     getTiddlerInfo (tiddler) {
-      return {address: "HoloTW_Address"}
+      console.log('In HoloTW getTiddlerInfo:', tiddler.fields);
+      return null;
     }
   
     /* Currently calling to get a list of instances and then just checking against an
@@ -51,6 +62,8 @@ class HoloTW {
         console.log('In HoloTW getStatus')
 
 /*         this.makeHolochainCall('admin/agent/list', { }, result => {
+          if (!("Ok" in result))
+            throw(result);
           console.log('Agent List', result);
           callback(result.Ok, true, "TempUsername", true, false);
         })  */
@@ -77,18 +90,72 @@ class HoloTW {
     loaded by default which let people add links to it for public content and let people 
     follow it to individuals pages to share content with just them. 
     
-    I might want to have this list in memory and then use a holochain callback to update it
-    when needed. I don't think that is implemented yet. Callback is supposed to send 
-    (error,<array of tiddler field object> so I need to verify what that is.*/
+    This looks like it gets called periodically so don't need to invoke a Holochain 
+    callback to keep decently updated. (
+    Callback is supposed to send (error,<array of tiddler field objects minus the text field>)
+     - I verified with RemoteStorage. */
     getSkinnyTiddlers (callback) {
         console.log('In HoloTW getSkinnyTiddlers')
         
         try {
-            this.makeHoloTWCall('query_tiddlers',{ }, result => {
-              console.log('Created Tiddler', result);
-              //Not sure, but I might need to invoke the callback for each separate result
-              callback(null, result);
-            })
+          this.makeHoloTWCall('query_tiddlers',{ }, result => {
+            if (!("Ok" in result))
+              throw(result);
+            //Invoked repeatedly so need to clear each time
+            this.skinnyTiddlers.clear();
+            this.tiddlerAddresses.clear();
+
+            let bCollisionFound = false; //Clear and then check at end to popup warning
+            console.log('Queried Tiddlers', result);
+
+            for (let each of result.Ok.Entries) {
+              let address = each[0];
+              //Don't want to use title like this b/c will have to modify in two places
+              //title = JSON.parse(each[1].App[1]).title;
+              let tiddler = JSON.parse(JSON.parse(each[1].App[1]).text);
+              //Skinny so delete text field
+              delete tiddler.text;
+              let agent = tiddler.creator;
+              
+              if (this.skinnyTiddlers.has(tiddler.title)) {
+                bCollisionFound = true;
+                if (this.holochainInstance.agent != agent) {
+                //Modify current tiddler to avoid the collision 
+                  if (!("collision" in tiddler.tags)) {
+                    tiddler.tags.push("collision");
+                  }
+                  tiddler.title = tiddler.title + "-" + address;
+                }
+                else {
+                  //Modify saved tiddler to avoid the collision
+                  let modified_tiddler = this.skinnyTiddlers.get(tiddler.title);
+                  let modified_title = tiddler.title + "-" + address;
+                  modified_tiddler.title = modified_title;
+                  if (!("collision" in modified_tiddler.tags)) {
+                    modified_tiddler.tags.push("collision");
+                  }
+                  this.skinnyTiddlers.set(modified_title, modified_tiddler);
+                  this.tiddlerAddresses.set(modified_title,this.tiddlerAddresses.get(tiddler.title));
+                }
+              }
+              this.tiddlerAddresses.set(tiddler.title,address);
+              this.skinnyTiddlers.set(tiddler.title,tiddler);
+            }
+            if (bCollisionFound)
+              $tw.utils.warning("1 or more tiddlers with a duplicate title found. Search on the collision tag to find the duplicates and then either edit the original or delete the original and renname the title of a duplicate.");
+              /*
+Trigger a popup open or closed. Parameters are in a hashmap:
+	title: title of the tiddler where the popup details are stored
+	domNode: dom node to which the popup will be positioned (one of domNode or domNodeRect is required)
+	domNodeRect: rectangle to which the popup will be positioned
+	wiki: wiki
+	force: if specified, forces the popup state to true or false (instead of toggling it)
+	floating: if true, skips registering the popup, meaning that it will need manually clearing
+*/
+//              $tw.utils.Popup();
+            callback(null, Array.from(this.skinnyTiddlers.values()));
+          })
+
         }
         catch(e) {
           callback(e)
@@ -96,66 +163,82 @@ class HoloTW {
     }
   
     /* Saving to the Holochain will not guarantee that Title's are unique and this is the 
-    rule the TiddlyWiki interface enforces. For this reason if a Tiddler is loaded that
-    conflicts with a current name, I think I am going to have to append to it something
-    like "_CONFLICT_<agent name>_<datetime>". */
+    rule the TiddlyWiki interface enforces. getSkinnyTiddlers takes care of modifying the 
+    tiddler fields to handle collisions so here I just need to retrieve the entry from the
+    DHT and add the text to the returned tiddler. */
     loadTiddler (title, callback) {
-        console.log('In HoloTW loadTiddler')
+        console.log('In HoloTW loadTiddler:' + title)
 
-        //Check for a saved hash in a list of stored tiddlers?
-        let holochain_address;
-        if (holochain_address != undefined) {
-          if (this.b58Check(holochain_address)) {
-            // Call getTiddler in Zome
+        try {
+          // Don't save drafts so check to see if the title doesn't exist and complete the callback
+          if (this.tiddlerAddresses.has(title)) {
+            // Call remove_tiddler in Zome
+            this.makeHoloTWCall('get_tiddler', 
+            {address: this.tiddlerAddresses.get(title) }, result => {
+              if (!("Ok" in result))
+                throw(result);
+              console.log('Got Tiddler', result);
+              let tiddler = this.skinnyTiddlers.get(title);
+              tiddler.text = JSON.parse(JSON.parse(result.Ok.App[1]).text).text;
+              callback(null,tiddler);
+            })
           }
-          else
-            throw("Address to load Tiddler to Holochain has been corrupted.")
+          else {
+            throw("Address not found to load Tiddler from Holochain.");
+          }
+        } catch (e) {
+          callback(e);
         }
-        else {
-          // Call addTiddler in Zome
-        }
-        callback(null)
-        return
-    }
+        return true
+      }
   
-    /* Check if the tiddler already has a hash saved to holochain-address. (Call b58Check 
-      to do basic validation of the hash.) Then either save an update to the current entry
-      or create a new one.*/
+    /* Check if the tiddler already has a hash saved to holochain-address. 
+    Then either save an update to the current entry or create a new one.
+    Callback supposed to call err,adaptorInfo,revision, but I'm not sure
+    what to send for the latter 2 fields.*/
     saveTiddler (tiddler, callback, tiddlerInfo) {
 
       try {
-        console.log('In HoloTW saveTiddler')
+        console.log('In HoloTW saveTiddler:', tiddler.fields)
 
         // I think this handles the special case where I don't want to save the user's storyview to the DHT
         if (tiddler.fields.title === '$:/StoryList') {
-            this.ls.setItem(tiddler.fields.title, JSON.stringify(tiddler.fields));
-            callback(null);
+          this.ls.setItem(tiddler.fields.title, JSON.stringify(tiddler.fields));
+          callback(null);
           return
         }
       
-        //Drafts get saved too - want to ignore them, but not getting any 2nd save prompts
-/*         if ("draft.of" in tiddler.fields)
-          return */
+        //Drafts get saved too - want to ignore them, but seems to work if send the callback
+        if ("draft.of" in tiddler.fields) {
+          callback(null);
+          return;
+        }
 
-        //Check for a saved hash.
-        if (tiddler.fields.holochain_address != undefined ) {
-          if (this.b58Check(tiddler.fields.holochain_address)) {
-            // Call updateTiddler in Zome
-          }
-          else
-            throw("Address to save Tiddler to Holochain has been corrupted.")
+        //Check for a saved address.
+        if (this.tiddlerAddresses.has(tiddler.fields.title)) {
+          // Call updateTiddler in Zome
+          this.makeHoloTWCall('update_tiddler', 
+            { address: this.tiddlerAddresses.get(tiddler.fields.title),
+              title: tiddler.fields.title, 
+              text: JSON.stringify(tiddler.fields) }, result => {
+              if (!("Ok" in result))
+                throw(result);
+              console.log('Updated Tiddler', result);
+              this.tiddlerAddresses.set(tiddler.fields.title, result.Ok);
+              this.skinnyTiddlers.set(tiddler.fields.title, tiddler.fields);
+              callback(null);
+            })
         }
         else {
           // Call addTiddler in Zome
-            this.makeHoloTWCall('create_tiddler', 
-                {title: tiddler.fields.title, text: JSON.stringify(tiddler.fields) }, result => {
-              console.log('Created Tiddler', result);
-              //Need to add address returned to the tiddler
-              callback(null);
-                })
+          this.makeHoloTWCall('create_tiddler', 
+              {title: tiddler.fields.title, text: JSON.stringify(tiddler.fields) }, result => {
+            console.log('Created Tiddler', result);
+            this.tiddlerAddresses.set(tiddler.fields.title, result.Ok);
+            this.skinnyTiddlers.set(tiddler.fields.title, tiddler.fields);
+            callback(null);
+            })
         }
-
-
       } catch (e) {
         callback(e);
       }
@@ -164,21 +247,27 @@ class HoloTW {
     }
   
     deleteTiddler (title, callback, tiddlerInfo) {
-        console.log('In HoloTW deleteTiddler')
+      console.log('In HoloTW deleteTiddler:' + title)
 
-        //Check for a saved hash.
-        //holochain-address = *get user field from tiddler*;
-        if (holochain-address) {
-          if (this.b58Check(holochain-address)) {
-            // Call deleteTiddler in Zome
-          }
-          else
-            throw("Address to save Tiddler to Holochain has been corrupted.")
-        }
+      try {
+        // Don't save drafts so check to see if the title doesn't exist and complete the callback
+        if (!this.tiddlerAddresses.has(title))
+          callback(null);
         else {
-          // I can probably just delete the entry from the TiddlyWiki and notify of error
-          throw("Address to delete Tiddler from Holochain is empty.")
+          // Call remove_tiddler in Zome
+          this.makeHoloTWCall('remove_tiddler', 
+          {address: this.tiddlerAddresses.get(title) }, result => {
+            if (!("Ok" in result))
+              throw(result);
+            console.log('Removed Tiddler', result);
+            this.tiddlerAddresses.delete(title);
+            this.skinnyTiddlers.delete(title);
+            callback(null);
+          })
         }
+      } catch (e) {
+        callback(e);
+      }
       return true
     }
 
@@ -192,17 +281,25 @@ class HoloTW {
     makeHoloTWCall (callString, params, callback) {
       //Prepend instance and zome and then call the general functon
       callString = this.holochainInstance.id + "/holotw/" + callString;
-      this.makeHolochainCall (callString, params, callback);
+      //Parse the JSON by default, but might need to change
+      this.makeHolochainCall (callString, params, callback, true);
     }
     
-    makeHolochainCall (callString, params, callback) {
-      this.holochainConnection.then(({ call }) => {
-        // Remove JSON.parse for now. info/instances returned already parsed array of JSON
-        call(callString)(params).then((result) => callback(result))
-      })
+    makeHolochainCall (callString, params, callback, parse) {
+      //Add parameter to drive whether JSON.parse invoked on result - not needed for info/instances
+      if (parse) {
+        this.holochainConnection.then(({ call }) => {
+          call(callString)(params).then((result) => callback(JSON.parse(result)))
+        })
+      }
+      else {
+        this.holochainConnection.then(({ call }) => {
+          call(callString)(params).then((result) => callback(result))
+        })
+      }
     }
 }
-  
+  // Not sure if this code needed - something like it was in the remotestorage plugin, but not sure what it does
   if ($tw.browser) {
     exports.adaptorClass = HoloTW
   }
